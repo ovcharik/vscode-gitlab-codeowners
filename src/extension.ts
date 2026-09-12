@@ -3,7 +3,11 @@ import { CodeownersManager, type OwnerInfo } from "./codeowners-manager";
 import { CodeownersFoldingProvider } from "./codeowners-folding";
 import { CodeownersDiagnostics } from "./codeowners-diagnostics";
 import { CodeownersCompletionProvider } from "./codeowners-completion-provider";
+import { findCodeownersForRoot } from "./codeowners-locator";
+import { collectWorkspacePaths } from "./codeowners-lint";
+import { collectOwners, filesOwnedByAsync } from "./codeowners-search";
 const COMMAND_ID = "gitlab-codeowners.showOwners";
+const SEARCH_COMMAND_ID = "gitlab-codeowners.searchByOwner";
 const STATUS_BAR_PRIORITY = 100;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -61,6 +65,93 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(showOwnersCommand);
+
+  const searchByOwnerCommand = vscode.commands.registerCommand(SEARCH_COMMAND_ID, async () => {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!root) {
+      vscode.window.showInformationMessage("GitLab CODEOWNERS: no workspace folder open.");
+      return;
+    }
+    const codeownersPath = findCodeownersForRoot(root);
+    if (!codeownersPath) {
+      vscode.window.showInformationMessage("GitLab CODEOWNERS: no CODEOWNERS file found.");
+      return;
+    }
+    const docText = await vscode.workspace.fs
+      .readFile(vscode.Uri.file(codeownersPath))
+      .then((b) => Buffer.from(b).toString("utf8"));
+
+    // One persistent Quick Pick: owner selection -> busy spinner -> file list.
+    // The imperative API keeps the picker open while results are computed,
+    // and the chunked search keeps the extension host responsive so the
+    // spinner (animated by the UI process) runs smoothly.
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.placeholder = "Search files by owner";
+    quickPick.items = collectOwners(docText).map((o) => ({ label: o }));
+    quickPick.matchOnDescription = true;
+    quickPick.show();
+
+    const chosenOwnerOrFile: string | undefined = await new Promise((resolve) => {
+      quickPick.onDidChangeSelection((selection) => {
+        const [first] = selection;
+        if (!first) return;
+        if (quickPick.busy) return; // ignore stray picks while searching
+        resolve(first.label);
+      });
+      quickPick.onDidHide(() => resolve(undefined));
+    });
+
+    // The user closed the picker without choosing an owner
+    if (!chosenOwnerOrFile) {
+      quickPick.dispose();
+      return;
+    }
+    const owner = chosenOwnerOrFile;
+
+    quickPick.busy = true;
+    // Clear the typed owner name, otherwise Quick Pick keeps filtering the
+    // upcoming file list by it and hides everything
+    quickPick.value = "";
+    quickPick.placeholder = `Searching files owned by ${owner}...`;
+    quickPick.items = [];
+
+    const { files, truncated } = await filesOwnedByAsync(
+      docText,
+      owner,
+      collectWorkspacePaths(root),
+    );
+
+    if (files.length === 0) {
+      quickPick.hide();
+      quickPick.dispose();
+      vscode.window.showInformationMessage(`GitLab CODEOWNERS: no files owned by ${owner}.`);
+      return;
+    }
+
+    quickPick.busy = false;
+    quickPick.placeholder = `${files.length} file${files.length === 1 ? "" : "s"} owned by ${owner}${truncated ? " (list truncated)" : ""}`;
+    quickPick.items = files.map((f) => ({
+      label: f.file,
+      description: f.section ? `section: ${f.section}` : "",
+    }));
+
+    const chosenFile: string | undefined = await new Promise((resolve) => {
+      quickPick.onDidChangeSelection((selection) => {
+        const [first] = selection;
+        if (!first || quickPick.busy) return;
+        resolve(first.label);
+      });
+      quickPick.onDidHide(() => resolve(undefined));
+    });
+    quickPick.dispose();
+
+    if (chosenFile) {
+      vscode.window.showTextDocument(
+        vscode.Uri.joinPath(vscode.Uri.file(root), chosenFile.replace(/^\//, "")),
+      );
+    }
+  });
+  context.subscriptions.push(searchByOwnerCommand);
 
   const updateStatusBar = async () => {
     const editor = vscode.window.activeTextEditor;

@@ -52,6 +52,10 @@
       {
         "command": "gitlab-codeowners.showOwners",
         "title": "GitLab CODEOWNERS: Show owners of current file"
+      },
+      {
+        "command": "gitlab-codeowners.searchByOwner",
+        "title": "GitLab CODEOWNERS: Search files by owner"
       }
     ],
     "languages": [

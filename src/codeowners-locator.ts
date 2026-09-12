@@ -13,6 +13,20 @@ export const CODEOWNERS_RELATIVE_PATHS = [
 ];
 
 /**
+ * Find the CODEOWNERS file that governs the workspace root itself
+ * (checked in the root directory only, per GitLab precedence).
+ */
+export function findCodeownersForRoot(workspaceRoot: string): string | undefined {
+  for (const rel of CODEOWNERS_RELATIVE_PATHS) {
+    const candidate = path.join(workspaceRoot, rel);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Find the nearest CODEOWNERS file for a given absolute file path,
  * walking up from the file's directory to the workspace root.
  */
