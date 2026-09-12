@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { lintDocument, collectWorkspacePaths, type WorkspacePaths } from "./codeowners-lint";
+import { lintDocument } from "./codeowners-lint";
+import { WorkspacePathsCache } from "./codeowners-workspace-paths";
 
 /**
  * Thin VS Code wrapper around the pure lint rules:
@@ -7,18 +8,51 @@ import { lintDocument, collectWorkspacePaths, type WorkspacePaths } from "./code
  */
 export class CodeownersDiagnostics {
   private collection: vscode.DiagnosticCollection;
-  private workspacePaths: WorkspacePaths | undefined;
+  /** Pending debounce timers per document URI */
+  private pending = new Map<vscode.Uri, ReturnType<typeof setTimeout>>();
+  private static readonly DEBOUNCE_MS = 300;
 
-  constructor(context: vscode.ExtensionContext) {
+  constructor(
+    context: vscode.ExtensionContext,
+    private readonly workspacePaths: WorkspacePathsCache,
+  ) {
     this.collection = vscode.languages.createDiagnosticCollection("gitlab-codeowners");
     context.subscriptions.push(this.collection);
 
+    const validateDebounced = (doc: vscode.TextDocument) => {
+      const previous = this.pending.get(doc.uri);
+      if (previous) clearTimeout(previous);
+      this.pending.set(
+        doc.uri,
+        setTimeout(() => {
+          this.pending.delete(doc.uri);
+          // The document may have been closed while the timer was pending —
+          // re-setting diagnostics for a closed file would leave ghosts
+          // in the Problems panel that nothing cleans up afterwards.
+          if (doc.isClosed) return;
+          this.validate(doc);
+        }, CodeownersDiagnostics.DEBOUNCE_MS),
+      );
+    };
+
     context.subscriptions.push(
       vscode.workspace.onDidOpenTextDocument((d) => this.validate(d)),
-      vscode.workspace.onDidChangeTextDocument((e) => this.validate(e.document)),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => {
-        this.workspacePaths = undefined;
+      vscode.workspace.onDidChangeTextDocument((e) => validateDebounced(e.document)),
+      vscode.workspace.onDidCloseTextDocument((d) => {
+        this.collection.delete(d.uri);
+        // Drop a pending timer: the debounced validate would run on a closed doc
+        const previous = this.pending.get(d.uri);
+        if (previous) {
+          clearTimeout(previous);
+          this.pending.delete(d.uri);
+        }
       }),
+      {
+        dispose: () => {
+          for (const t of this.pending.values()) clearTimeout(t);
+          this.pending.clear();
+        },
+      },
     );
     // Re-validate files that are already open (e.g. after activation)
     for (const doc of vscode.workspace.textDocuments) {
@@ -35,18 +69,15 @@ export class CodeownersDiagnostics {
     );
   }
 
-  private getWorkspacePaths(): WorkspacePaths | undefined {
-    if (this.workspacePaths) return this.workspacePaths;
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!root) return undefined;
-    this.workspacePaths = collectWorkspacePaths(root);
-    return this.workspacePaths;
-  }
-
-  validate(document: vscode.TextDocument) {
+  private async validate(document: vscode.TextDocument): Promise<void> {
     if (!this.isCodeownersDocument(document)) return;
 
-    const ws = this.getWorkspacePaths();
+    // Cold start on a big repo: await the (chunked, non-blocking) walk
+    // instead of linting against an empty tree full of false "not found"s.
+    const ws = await this.workspacePaths.get();
+    // The user may have closed the document while the walk was running
+    if (document.isClosed) return;
+
     const messages = lintDocument(
       document.getText(),
       ws ?? { files: new Set<string>(), directories: new Set<string>() },

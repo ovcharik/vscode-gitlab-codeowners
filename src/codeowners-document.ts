@@ -43,6 +43,11 @@ export interface Section {
 }
 
 const SECTION_RE = /^\s*(\^?)\[([^\]]*)\](?:\[(\d+)\])?\s*(.*)$/;
+
+/** True when the line looks like a section header (`^optional [Name] [count]`). */
+export function isSectionHeaderLine(line: string): boolean {
+  return SECTION_RE.test(line);
+}
 /**
  * Token that looks like a valid owner: @user, @group/sub, @@role, email.
  * Uses Unicode property escapes so non-Latin usernames (e.g. Cyrillic)
@@ -120,18 +125,14 @@ export function parseDocument(text: string): Section[] {
   return sections;
 }
 
-/** Match a GitLab CODEOWNERS path pattern against a repository-relative file path. */
-export function matchPattern(pattern: string, filePath: string): boolean {
-  // Directory path: trailing slash matches everything inside
-  if (pattern.endsWith("/")) {
-    return filePath.startsWith(pattern);
-  }
-  const regex = globToRegExp(pattern);
-  return regex.test(filePath);
-}
+/** Compile-time cache for globToRegExp: linting tests every rule against
+ *  every file, so the same pattern must not be recompiled in that loop. */
+const globCache = new Map<string, RegExp>();
 
 /** Convert a GitLab fnmatch-style glob (FNM_PATHNAME | FNM_DOTMATCH) to RegExp. */
 export function globToRegExp(pattern: string): RegExp {
+  const cached = globCache.get(pattern);
+  if (cached) return cached;
   let re = "";
   for (let i = 0; i < pattern.length; i++) {
     const ch = pattern[i];
@@ -159,5 +160,7 @@ export function globToRegExp(pattern: string): RegExp {
       re += ch;
     }
   }
-  return new RegExp(`^${re}$`);
+  const regex = new RegExp(`^${re}$`);
+  globCache.set(pattern, regex);
+  return regex;
 }

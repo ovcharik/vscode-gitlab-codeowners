@@ -25,8 +25,42 @@ export interface WorkspacePaths {
   directories: Set<string>;
 }
 
-/** Collect repo-relative files/directories from disk, skipping heavy dirs. */
-export function collectWorkspacePaths(root: string): WorkspacePaths {
+/** Collect repo-relative files/directories from disk, skipping heavy dirs.
+ *  Chunked and async: yields the event loop between directories so a large
+ *  repository does not freeze the extension host on a cold cache. */
+export async function collectWorkspacePaths(root: string): Promise<WorkspacePaths> {
+  const files = new Set<string>();
+  const directories = new Set<string>();
+  const SKIP = new Set([".git", "node_modules"]);
+
+  const yieldLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+  const walk = async (absDir: string, relDir: string): Promise<void> => {
+    let entries: fs.Dirent[];
+    try {
+      entries = await fs.promises.readdir(absDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (SKIP.has(e.name)) continue;
+      const rel = relDir ? `${relDir}/${e.name}` : e.name;
+      if (e.isDirectory()) {
+        directories.add(rel);
+        await walk(path.join(absDir, e.name), rel);
+      } else {
+        files.add(rel);
+      }
+    }
+    // Let the extension host breathe between directories
+    await yieldLoop();
+  };
+  await walk(root, "");
+  return { files, directories };
+}
+
+/** Synchronous variant for places that must not await (tests, small trees). */
+export function collectWorkspacePathsSync(root: string): WorkspacePaths {
   const files = new Set<string>();
   const directories = new Set<string>();
   const SKIP = new Set([".git", "node_modules"]);
@@ -58,8 +92,16 @@ export function matchesFile(pattern: string, filePath: string): boolean {
   const normFile = filePath.startsWith("/") ? filePath : `/${filePath}`;
   const normPattern = pattern.startsWith("/") ? pattern : `/${pattern}`;
   if (normPattern.endsWith("/")) {
-    // directory pattern: matches the dir itself and everything inside
-    return normFile.startsWith(normPattern);
+    // Directory pattern: matches the dir itself and everything inside.
+    // Relative directories keep globstar semantics: any depth
+    // (e.g. `api/` matches both `api/x.ts` and `pkg/api/y.ts`).
+    const dir = normPattern.slice(0, -1);
+    if (pattern.startsWith("/")) {
+      return normFile.startsWith(normPattern);
+    }
+    // `dir` is normalized with a leading slash ("/api"); any occurrence of
+    // "/api/" in the path — at the start or nested — is inside the directory
+    return normFile === dir || normFile.includes(`${dir}/`);
   }
   if (pattern.startsWith("/")) {
     // absolute pattern: match only from the repository root
@@ -71,22 +113,8 @@ export function matchesFile(pattern: string, filePath: string): boolean {
 
 /** Does the pattern match at least one existing file? Directories: anything inside counts. */
 export function patternHasMatches(pattern: string, ws: WorkspacePaths): boolean {
-  const bare = pattern.replace(/^\//, "");
-  if (pattern.endsWith("/")) {
-    const dir = bare.slice(0, -1);
-    for (const f of ws.files) {
-      if (f === dir || f.startsWith(`${dir}/`)) return true;
-    }
-    return false;
-  }
-  const isAbsolute = pattern.startsWith("/");
   for (const f of ws.files) {
     if (matchesFile(pattern, f)) return true;
-    if (!isAbsolute) {
-      // relative patterns are globstar: match at any depth
-      const idx = f.lastIndexOf("/");
-      if (idx !== -1 && matchesFile(`/${bare}`, f)) return true;
-    }
   }
   return false;
 }
@@ -96,13 +124,16 @@ function resolvePathExists(rel: string, ws: WorkspacePaths): "file" | "directory
   const bare = rel.replace(/^\//, "").replace(/\/$/, "");
   if (ws.files.has(bare)) return "file";
   if (ws.directories.has(bare)) return "directory";
-  // For relative paths (globstar), any matching suffix counts
+  // For relative paths (globstar), any depth counts, including the root
   if (!rel.startsWith("/")) {
+    // A relative pattern is globstar: it matches a file/dir at any depth.
+    // `docs` matches the directory itself and `docs/README.md` inside it;
+    // `guide.md` matches `docs/guide.md` (any parent directory).
     for (const f of ws.files) {
-      if (f.endsWith(`/${bare}`)) return "file";
+      if (f === bare || f.startsWith(`${bare}/`) || f.endsWith(`/${bare}`)) return "file";
     }
     for (const d of ws.directories) {
-      if (d.endsWith(`/${bare}`)) return "directory";
+      if (d === bare || d.startsWith(`${bare}/`) || d.endsWith(`/${bare}`)) return "directory";
     }
   }
   return null;
@@ -243,7 +274,9 @@ function patternsOverlap(cover: string, candidate: string): boolean {
     return candAbs.startsWith(coverAbs) || candAbs === coverAbs.slice(0, -1);
   }
   if (candAbs.endsWith("/")) {
-    return coverAbs.startsWith(candAbs) || coverAbs === candAbs.slice(0, -1);
+    // The later rule is a directory: the earlier exclusion covers it when
+    // the excluded path is the dir itself or lives inside it (`/a/b` in `/a/b/`).
+    return coverAbs === candAbs.slice(0, -1) || coverAbs.startsWith(candAbs);
   }
   // Exact or wildcard-cover: sample with regex against a synthetic path
   if (coverAbs === candAbs) return true;

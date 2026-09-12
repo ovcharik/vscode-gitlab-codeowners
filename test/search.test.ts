@@ -123,6 +123,15 @@ describe("filesOwnedBy", () => {
     );
   });
 
+  it("relative directory pattern matches at any depth (parity with the linter)", () => {
+    // `api/` without a leading slash is a globstar directory: it must match
+    // `pkg/api/x.md` just like the linter's matchesFile does
+    const doc = ["api/ @deep-team"].join("\n");
+    const files = new Set(["pkg/api/x.md", "api/y.md", "apiz/z.md", "other.md"]);
+    const { files: owned } = filesOwnedBy(doc, "@deep-team", { files });
+    assert.deepEqual(owned.map((f) => f.file).sort(), ["api/y.md", "pkg/api/x.md"]);
+  });
+
   it("truncates large results", () => {
     const many = { files: new Set([...Array(10).keys()].map((i) => `f${i}.ts`)) };
     const { truncated } = filesOwnedBy("* @x", "@x", many, 5);

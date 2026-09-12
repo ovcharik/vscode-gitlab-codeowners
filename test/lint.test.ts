@@ -8,7 +8,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { lintDocument, collectWorkspacePaths, matchesFile } from "../src/codeowners-lint";
+import { lintDocument, collectWorkspacePathsSync, matchesFile } from "../src/codeowners-lint";
 import { parseDocument, splitByNonEscapedSpaces, globToRegExp } from "../src/codeowners-document";
 
 // ---------------------------------------------------------------------------
@@ -74,6 +74,12 @@ describe("matchesFile", () => {
 
   it("* matches dotfiles (FNM_DOTMATCH)", () => {
     assert.ok(matchesFile("/docs/*", "docs/.gitignore-x"));
+  });
+
+  it("relative directory pattern matches at any depth (globstar)", () => {
+    assert.ok(matchesFile("api/", "api/index.md"));
+    assert.ok(matchesFile("api/", "docs/api/index.md"));
+    assert.ok(!matchesFile("api/", "docs"));
   });
 });
 
@@ -157,7 +163,7 @@ describe("parseDocument", () => {
 // ---------------------------------------------------------------------------
 
 describe("lintDocument", () => {
-  const lint = (text: string) => lintDocument(text, collectWorkspacePaths(fixtureRoot));
+  const lint = (text: string) => lintDocument(text, collectWorkspacePathsSync(fixtureRoot));
 
   it("clean basic file produces no messages", () => {
     const msgs = lint(
@@ -189,6 +195,19 @@ describe("lintDocument", () => {
   it("relative directory pattern matches at any depth (no false positive)", () => {
     // fixture has docs/api; pattern `api/` relative should match
     const msgs = lint(["api/ @a"].join("\n"));
+    assert.deepEqual(msgs, []);
+  });
+
+  it("relative non-directory path resolves via globstar at the root", () => {
+    // `README.md` (relative, no wildcard) must not warn: it matches the
+    // root file AND docs/README.md at depth
+    const msgs = lint(["README.md @a"].join("\n"));
+    assert.deepEqual(msgs, []);
+  });
+
+  it("relative non-directory path inside a directory does not warn", () => {
+    // `guide.md` lives inside docs/ — globstar should find it
+    const msgs = lint(["guide.md @a"].join("\n"));
     assert.deepEqual(msgs, []);
   });
 

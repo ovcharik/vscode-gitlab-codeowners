@@ -2,31 +2,49 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { findCodeownersFile } from "./codeowners-locator";
+import { parseDocument } from "./codeowners-document";
+import { ownersForFile } from "./codeowners-search";
 
 export interface OwnerInfo {
   owner: string;
   section?: string;
+  /** True when the granting section is optional (`^[Name]`) */
   optional?: boolean;
-  approvalsNeeded?: number;
+}
+
+/** Description shown next to the owner label in Quick Picks and the status bar. */
+export function formatOwnerDescription(o: OwnerInfo): string {
+  if (!o.section || o.section === "codeowners") {
+    return "";
+  }
+  const parts = [`section: ${o.section}`];
+  if (o.optional) {
+    parts.push("optional");
+  }
+  return `${parts.join(", ")}`;
+}
+
+/** Formats an owner as it would appear in a CODEOWNERS file rule. */
+export function formatOwner(o: OwnerInfo): string {
+  const description = formatOwnerDescription(o);
+  if (!description) {
+    return o.owner;
+  }
+  return `${o.owner} ${description}`;
 }
 
 /**
- * Subset of the API surface of @gitlab/codeowners that we use.
- * The package is ESM-only, so we import it dynamically and type it locally.
+ * Computes code owners for a file using the extension's own parser.
+ *
+ * GitLab semantics: the nearest CODEOWNERS file up the tree wins
+ * (nested files override root ones). Within one file, sections are
+ * combined, and the last matching rule in a section wins.
  */
-interface ParsedCodeowners {
-  getOwners(filePath: string): string[];
-  getOwnersDetailed(filePath: string): Array<{
-    owner: string;
-    type: string;
-    section?: string;
-    optional?: boolean;
-    approvalsNeeded?: number;
-  }>;
-}
-
 export class CodeownersManager implements vscode.Disposable {
-  private cache = new Map<string, { version: number; parsed: ParsedCodeowners | undefined }>();
+  private cache = new Map<
+    string,
+    { version: number; parsed: ReturnType<typeof parseDocument> | undefined }
+  >();
 
   dispose() {
     this.cache.clear();
@@ -54,38 +72,44 @@ export class CodeownersManager implements vscode.Disposable {
 
     const workspaceRoot = workspaceFolder.uri.fsPath;
     const relativePath = makeRelative(absoluteFilePath, workspaceRoot);
-    const detailed = parsed.getOwnersDetailed(relativePath);
-    return detailed.map((d) => ({
-      owner: d.owner,
-      section: d.section,
-      optional: d.optional,
-      approvalsNeeded: d.approvalsNeeded,
+    const { owners, section } = ownersForFile(parsed, relativePath);
+    if (owners.length === 0) {
+      return undefined;
+    }
+
+    // Enrich with the metadata of the granting section (case-insensitive
+    // name lookup — GitLab treats section names case-insensitively)
+    const sectionMeta =
+      section !== undefined
+        ? parsed.find((s) => s.header?.name?.toLowerCase() === section.toLowerCase())?.header
+        : undefined;
+    return owners.map((owner) => ({
+      owner,
+      section,
+      optional: sectionMeta?.optional,
     }));
   }
 
-  private async parseFile(codeownersPath: string): Promise<ParsedCodeowners | undefined> {
-    const stat = await fs.stat(codeownersPath);
-    const version = stat.mtime.valueOf();
-
-    const cached = this.cache.get(codeownersPath);
-    if (cached && cached.version === version) {
-      return cached.parsed;
-    }
-
-    let parsed: ParsedCodeowners | undefined;
+  private async parseFile(
+    codeownersPath: string,
+  ): Promise<ReturnType<typeof parseDocument> | undefined> {
     try {
-      // @gitlab/codeowners is an ESM package; use dynamic import from CJS.
-      const { parse } = await import("@gitlab/codeowners");
-      parsed = await parse(codeownersPath);
-    } catch (e) {
-      // Parsing errors are currently not surfaced by @gitlab/codeowners;
-      // treat as "no owners available".
-      void e;
-      parsed = undefined;
-    }
+      const stat = await fs.stat(codeownersPath);
+      const version = stat.mtime.valueOf();
 
-    this.cache.set(codeownersPath, { version, parsed });
-    return parsed;
+      const cached = this.cache.get(codeownersPath);
+      if (cached && cached.version === version) {
+        return cached.parsed;
+      }
+
+      const text = await fs.readFile(codeownersPath, "utf8");
+      const parsed = parseDocument(text);
+      this.cache.set(codeownersPath, { version, parsed });
+      return parsed;
+    } catch {
+      // Deleted or unreadable CODEOWNERS: treat as "no owners available"
+      return undefined;
+    }
   }
 }
 

@@ -33,9 +33,17 @@ interface CompiledEntry {
 function compileMatcher(pattern: string): (filePath: string) => boolean {
   const normPattern = pattern.startsWith("/") ? pattern : `/${pattern}`;
   if (normPattern.endsWith("/")) {
-    // directory pattern: the dir itself and everything inside
-    const prefix = normPattern;
-    return (f) => `/${f}`.startsWith(prefix);
+    // Directory pattern: the dir itself and everything inside.
+    // Relative directories keep globstar semantics (any depth), matching
+    // matchesFile in codeowners-lint — e.g. `api/` matches `pkg/api/x.ts`.
+    const dir = normPattern.slice(0, -1);
+    if (pattern.startsWith("/")) {
+      return (f) => `/${f}`.startsWith(normPattern);
+    }
+    return (f) => {
+      const normFile = `/${f}`;
+      return normFile === dir || normFile.includes(`${dir}/`);
+    };
   }
   const re = pattern.startsWith("/")
     ? globToRegExp(normPattern)
@@ -82,16 +90,32 @@ export function ownersForFile(
   sections: Section[],
   filePath: string,
 ): { owners: string[]; section: string | undefined } {
+  return evalFile(compileSections(sections), filePath);
+}
+
+/**
+ * Evaluate the winning ownership for one file across all compiled sections.
+ *
+ * Single source of truth for the GitLab "last match wins" algorithm:
+ * within a section the last matching rule wins (exclusions reset the
+ * match, rules without owners fall back to section defaults), lists
+ * are combined across sections.
+ *
+ * When `owner` is given, `section` names the last section granting THAT
+ * owner; otherwise the last section granting anyone.
+ */
+function evalFile(
+  compiled: ReturnType<typeof compileSections>,
+  file: string,
+  owner?: string,
+): { owners: string[]; section: string | undefined } {
   const owners = new Set<string>();
   let section: string | undefined;
 
-  for (const s of compileSections(sections)) {
-    // Within a section the LAST matching rule wins; an exclusion
-    // (`!pattern`) clears the match. Owners of the winning rule are
-    // combined with owners from other sections.
+  for (const s of compiled) {
     let current: string[] | undefined;
     for (const entry of s.entries) {
-      if (!entry.test(filePath)) continue;
+      if (!entry.test(file)) continue;
       if (entry.isExclusion) {
         current = undefined;
         continue;
@@ -100,7 +124,7 @@ export function ownersForFile(
     }
     if (current && current.length > 0) {
       for (const o of current) owners.add(o);
-      section = s.name;
+      if (owner === undefined || current.includes(owner)) section = s.name;
     }
   }
   return { owners: [...owners], section };
@@ -123,26 +147,8 @@ export function filesOwnedBy(
   let truncated = false;
 
   for (const file of ws.files) {
-    const owners = new Set<string>();
-    let section: string | undefined;
-
-    for (const s of compiled) {
-      let current: string[] | undefined;
-      for (const entry of s.entries) {
-        if (!entry.test(file)) continue;
-        if (entry.isExclusion) {
-          current = undefined;
-          continue;
-        }
-        current = entry.owners.length > 0 ? entry.owners : s.defaultOwners;
-      }
-      if (current && current.length > 0) {
-        for (const o of current) owners.add(o);
-        if (current.includes(owner)) section = s.name;
-      }
-    }
-
-    if (owners.has(owner)) {
+    const { owners, section } = evalFile(compiled, file, owner);
+    if (owners.includes(owner)) {
       files.push({ file, section });
       if (files.length > limit) {
         truncated = true;
@@ -176,8 +182,8 @@ export async function filesOwnedByAsync(
   const files: OwnedFile[] = [];
   let truncated = false;
 
-  const considerFile = (file: string, owners: Set<string>, section: string | undefined) => {
-    if (!owners.has(owner)) return;
+  const considerFile = (file: string, owners: string[], section: string | undefined) => {
+    if (!owners.includes(owner)) return;
     files.push({ file, section });
     if (files.length > limit) truncated = true;
   };
@@ -185,23 +191,7 @@ export async function filesOwnedByAsync(
   for (let start = 0; start < all.length; start += chunkSize) {
     const chunk = all.slice(start, start + chunkSize);
     for (const file of chunk) {
-      const owners = new Set<string>();
-      let section: string | undefined;
-      for (const s of compiled) {
-        let current: string[] | undefined;
-        for (const entry of s.entries) {
-          if (!entry.test(file)) continue;
-          if (entry.isExclusion) {
-            current = undefined;
-            continue;
-          }
-          current = entry.owners.length > 0 ? entry.owners : s.defaultOwners;
-        }
-        if (current && current.length > 0) {
-          for (const o of current) owners.add(o);
-          if (current.includes(owner)) section = s.name;
-        }
-      }
+      const { owners, section } = evalFile(compiled, file, owner);
       considerFile(file, owners, section);
       if (truncated) break;
     }

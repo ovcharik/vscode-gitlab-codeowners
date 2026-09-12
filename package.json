@@ -22,9 +22,8 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && vite build",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "vite build --watch",
-    "watch:tsc": "tsc --noEmit --watch --sourceMap",
+    "watch:vite": "vite build --watch",
+    "watch:tsc": "tsc --noEmit --watch",
     "package": "npm run check-types && vite build",
     "check-types": "tsc --noEmit",
     "lint": "oxlint",
@@ -32,9 +31,6 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "vitest run"
-  },
-  "dependencies": {
-    "@gitlab/codeowners": "^0.2.8"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",

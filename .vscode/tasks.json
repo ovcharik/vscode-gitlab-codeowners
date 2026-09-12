@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "npm watch",
+      "label": "npm watch: vite build",
       "type": "npm",
-      "script": "watch",
+      "script": "watch:vite",
       "problemMatcher": ["$tsc-watch"],
       "isBackground": true,
       "presentation": {

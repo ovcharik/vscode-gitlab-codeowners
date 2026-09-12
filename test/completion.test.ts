@@ -7,11 +7,11 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { collectWorkspacePaths } from "../src/codeowners-lint";
+import { collectWorkspacePathsSync, type WorkspacePaths } from "../src/codeowners-lint";
 import { getCompletionContext, suggestPaths, suggestOwners } from "../src/codeowners-completion";
 
 let fixtureRoot: string;
-let ws: Awaited<ReturnType<typeof collectWorkspacePaths>>;
+let ws: WorkspacePaths;
 
 beforeAll(() => {
   fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "co-completion-"));
@@ -27,7 +27,7 @@ beforeAll(() => {
   mk("packages/app/src/lib/util.ts");
   mk("packages/app/src/main.ts");
   fs.mkdirSync(path.join(fixtureRoot, "docs/api"), { recursive: true });
-  ws = collectWorkspacePaths(fixtureRoot);
+  ws = collectWorkspacePathsSync(fixtureRoot);
 });
 
 describe("getCompletionContext", () => {

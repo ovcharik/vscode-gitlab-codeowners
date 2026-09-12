@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
-import { collectWorkspacePaths, type WorkspacePaths } from "./codeowners-lint";
+import type { WorkspacePaths } from "./codeowners-lint";
 import { getCompletionContext, suggestOwners, suggestPaths } from "./codeowners-completion";
+import type { WorkspacePathsCache } from "./codeowners-workspace-paths";
 
 const KINDS = {
   file: vscode.CompletionItemKind.File,
@@ -14,7 +15,7 @@ const KINDS = {
  *  - owner suggestions from owners already used in the document
  */
 export class CodeownersCompletionProvider implements vscode.CompletionItemProvider {
-  private workspacePaths: WorkspacePaths | undefined;
+  constructor(private readonly workspacePaths: WorkspacePathsCache) {}
 
   provideCompletionItems(
     document: vscode.TextDocument,
@@ -34,8 +35,14 @@ export class CodeownersCompletionProvider implements vscode.CompletionItemProvid
       );
     }
 
-    const ws = this.getWorkspacePaths();
-    if (!ws) return undefined;
+    // Cold-cache suggestion: nothing to suggest until the tree is walked.
+    // Trigger a warm-up so the NEXT keystroke already has real paths;
+    // owner suggestions above work regardless of the cache.
+    const ws: WorkspacePaths | undefined = this.workspacePaths.getCached();
+    if (!ws) {
+      this.workspacePaths.warmUp();
+      return undefined;
+    }
 
     // Paths are completed segment by segment: only the text after the
     // last "/" is replaced, so an accepted item glues onto the typed prefix
@@ -70,13 +77,5 @@ export class CodeownersCompletionProvider implements vscode.CompletionItemProvid
     // replaceFrom is either the token start (owners) or the segment start (paths)
     item.range = new vscode.Range(position.with({ character: replaceFrom }), position);
     return item;
-  }
-
-  private getWorkspacePaths(): WorkspacePaths | undefined {
-    if (this.workspacePaths) return this.workspacePaths;
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!root) return undefined;
-    this.workspacePaths = collectWorkspacePaths(root);
-    return this.workspacePaths;
   }
 }

@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
-
-// Section header line: ^optional [Name] [count] owners...
-const SECTION_HEADER_RE = /^\s*(\^?)\[([^\]]+)\]/;
+import { isSectionHeaderLine } from "./codeowners-document";
 
 /**
  * Provides folding ranges for CODEOWNERS files: each section folds from its
@@ -13,7 +11,7 @@ export class CodeownersFoldingProvider implements vscode.FoldingRangeProvider {
 
     const headerLines: number[] = [];
     for (let i = 0; i < document.lineCount; i++) {
-      if (SECTION_HEADER_RE.test(document.lineAt(i).text)) {
+      if (isSectionHeaderLine(document.lineAt(i).text)) {
         headerLines.push(i);
       }
     }

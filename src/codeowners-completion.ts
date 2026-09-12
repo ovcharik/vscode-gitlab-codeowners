@@ -30,9 +30,11 @@ export function getCompletionContext(lineText: string, col: number): CompletionC
 
   const tokensBefore = splitByNonEscapedSpaces(sliced);
   // On a plain entry line: first token is the path, the rest are owners.
-  // A trailing space means the user starts a NEW token — an owner.
+  // A trailing space means the user starts a NEW token — an owner — unless
+  // the space is backslash-escaped (it is part of a path token then).
   if (tokensBefore.length === 0) return null;
-  return tokensBefore.length === 1 && !/\s$/.test(sliced) ? "path" : "owner";
+  const endsWithSpace = sliced.endsWith(" ") && !sliced.endsWith("\\ ");
+  return tokensBefore.length === 1 && !endsWithSpace ? "path" : "owner";
 }
 
 /**
