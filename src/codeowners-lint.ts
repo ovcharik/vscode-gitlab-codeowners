@@ -16,7 +16,12 @@ export interface LintMessage {
   length: number;
   severity: "error" | "warning" | "info";
   message: string;
+  /** Diagnostic code: stable identifier if a quick fix exists, otherwise undefined */
+  code?: LintCode;
 }
+
+/** Stable diagnostic codes that can carry quick fixes. */
+export type LintCode = "need-trailing-slash" | "dir-does-not-exist" | "exclude-redundant";
 
 export interface WorkspacePaths {
   /** All repository-relative paths of files (POSIX-style, no trailing slash) */
@@ -151,7 +156,8 @@ export function lintDocument(text: string, ws: WorkspacePaths): LintMessage[] {
     length: number,
     severity: LintMessage["severity"],
     message: string,
-  ) => messages.push({ line, column, length, severity, message });
+    code?: LintCode,
+  ) => messages.push({ line, column, length, severity, message, code });
 
   for (const section of sections) {
     if (section.header && section.header.name === undefined) {
@@ -173,7 +179,14 @@ function lintEntry(
   entry: RuleEntry,
   section: Section,
   ws: WorkspacePaths,
-  push: (l: number, c: number, len: number, s: LintMessage["severity"], m: string) => void,
+  push: (
+    l: number,
+    c: number,
+    len: number,
+    s: LintMessage["severity"],
+    m: string,
+    code?: LintCode,
+  ) => void,
 ): void {
   // Zero owners (exclusions legitimately have none)
   if (!entry.owners.length && !entry.isExclusion && !hasDefaultOwners(section)) {
@@ -212,6 +225,7 @@ function lintEntry(
       entry.pattern.length,
       "error",
       `"/${rel.replace(/^\//, "")}" is a directory. Append a trailing slash (/) or the rule matches nothing inside it.`,
+      "need-trailing-slash",
     );
   } else if (existing === null) {
     // For file-kind entries: with a trailing slash it must be a directory
@@ -245,7 +259,14 @@ function hasDefaultOwners(section: Section): boolean {
  */
 function lintExclusions(
   section: Section,
-  push: (l: number, c: number, len: number, s: LintMessage["severity"], m: string) => void,
+  push: (
+    l: number,
+    c: number,
+    len: number,
+    s: LintMessage["severity"],
+    m: string,
+    code?: LintCode,
+  ) => void,
 ): void {
   const entries = section.entries;
   for (let i = 0; i < entries.length; i++) {
@@ -261,6 +282,7 @@ function lintExclusions(
           later.pattern.length,
           "warning",
           `This rule has no effect: excluded by "!${excl.path}" above. Excluded files cannot be re-included in the same section.`,
+          "exclude-redundant",
         );
       }
     }

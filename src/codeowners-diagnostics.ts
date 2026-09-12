@@ -18,6 +18,11 @@ export class CodeownersDiagnostics {
   ) {
     this.collection = vscode.languages.createDiagnosticCollection("gitlab-codeowners");
     context.subscriptions.push(this.collection);
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider({ language: "codeowners" }, this, {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      }),
+    );
 
     const validateDebounced = (doc: vscode.TextDocument) => {
       const previous = this.pending.get(doc.uri);
@@ -91,9 +96,60 @@ export class CodeownersDiagnostics {
           : m.severity === "warning"
             ? vscode.DiagnosticSeverity.Warning
             : vscode.DiagnosticSeverity.Information;
-      return new vscode.Diagnostic(range, m.message, severity);
+      const diagnostic = new vscode.Diagnostic(range, m.message, severity);
+      if (m.code) diagnostic.code = m.code;
+      return diagnostic;
     });
 
     this.collection.set(document.uri, diagnostics);
+  }
+
+  /** Quick fixes for our own diagnostics. */
+  provideCodeActions(
+    document: vscode.TextDocument,
+    range: vscode.Range,
+  ): vscode.CodeAction[] | undefined {
+    if (!this.isCodeownersDocument(document)) return undefined;
+    const diagnostics: readonly vscode.Diagnostic[] = this.collection.get(document.uri) ?? [];
+    const actions: vscode.CodeAction[] = [];
+    for (const diagnostic of diagnostics) {
+      if (!diagnostic.range.intersection(range)) continue;
+      const action = this.quickFixFor(document, diagnostic);
+      if (action) actions.push(action);
+    }
+    return actions.length > 0 ? actions : undefined;
+  }
+
+  private quickFixFor(
+    document: vscode.TextDocument,
+    diagnostic: vscode.Diagnostic,
+  ): vscode.CodeAction | undefined {
+    switch (diagnostic.code) {
+      case "need-trailing-slash": {
+        const edit = new vscode.WorkspaceEdit();
+        const pos = diagnostic.range.end;
+        edit.insert(document.uri, pos, "/");
+        const action = new vscode.CodeAction(
+          "Append trailing slash (/)",
+          vscode.CodeActionKind.QuickFix,
+        );
+        action.diagnostics = [diagnostic];
+        action.edit = edit;
+        return action;
+      }
+      case "exclude-redundant": {
+        const edit = new vscode.WorkspaceEdit();
+        edit.delete(document.uri, diagnostic.range);
+        const action = new vscode.CodeAction(
+          "Remove ineffective rule",
+          vscode.CodeActionKind.QuickFix,
+        );
+        action.diagnostics = [diagnostic];
+        action.edit = edit;
+        return action;
+      }
+      default:
+        return undefined;
+    }
   }
 }
