@@ -72,22 +72,26 @@ export class CodeownersManager implements vscode.Disposable {
 
     const workspaceRoot = workspaceFolder.uri.fsPath;
     const relativePath = makeRelative(absoluteFilePath, workspaceRoot);
-    const { owners, section } = ownersForFile(parsed, relativePath);
+    const { owners, sectionByOwner } = ownersForFile(parsed, relativePath);
     if (owners.length === 0) {
       return undefined;
     }
 
-    // Enrich with the metadata of the granting section (case-insensitive
-    // name lookup — GitLab treats section names case-insensitively)
-    const sectionMeta =
-      section !== undefined
+    // Enrich each owner with the metadata of ITS granting section
+    // (sections combine, so owners of one file can come from different
+    // sections; lookup is case-insensitive — GitLab treats section names
+    // case-insensitively)
+    return owners.map((owner) => {
+      const section = sectionByOwner.get(owner);
+      const sectionMeta = section
         ? parsed.find((s) => s.header?.name?.toLowerCase() === section.toLowerCase())?.header
         : undefined;
-    return owners.map((owner) => ({
-      owner,
-      section,
-      optional: sectionMeta?.optional,
-    }));
+      return {
+        owner,
+        section,
+        optional: sectionMeta?.optional,
+      };
+    });
   }
 
   private async parseFile(

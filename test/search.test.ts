@@ -91,6 +91,26 @@ describe("ownersForFile", () => {
     const owners = ownersForFile(s2, "free/a.md").owners;
     assert.deepEqual(owners, []);
   });
+
+  it("tracks the granting section per owner (sections combine)", () => {
+    const doc = [
+      "* @default-team",
+      "",
+      "[Backend]",
+      "/pkg/** @platform @backend/go-team",
+      "",
+      "[Frontend]",
+      "*.ts @frontend/web",
+    ].join("\n");
+    const s2 = parseDocument(doc);
+    const r = ownersForFile(s2, "pkg/service.ts");
+    assert.deepEqual(r.owners, ["@default-team", "@platform", "@backend/go-team", "@frontend/web"]);
+    // each owner carries ITS OWN granting section, not the last one
+    assert.equal(r.sectionByOwner.get("@default-team"), undefined);
+    assert.equal(r.sectionByOwner.get("@frontend/web"), "Frontend");
+    assert.equal(r.sectionByOwner.get("@platform"), "Backend");
+    assert.equal(r.sectionByOwner.get("@backend/go-team"), "Backend");
+  });
 });
 
 describe("filesOwnedBy", () => {

@@ -84,12 +84,19 @@ export function collectOwners(docText: string): string[] {
 /**
  * Compute owners for one file from a parsed document, combining sections
  * (last match wins within a section, exclusions respected).
- * Also reports the section the ownership came from (last granting section).
+ *
+ * `section` is the last section granting anyone; `sectionByOwner` tracks
+ * the last granting section per owner (sections combine, so different
+ * owners of one file can come from different sections).
  */
 export function ownersForFile(
   sections: Section[],
   filePath: string,
-): { owners: string[]; section: string | undefined } {
+): {
+  owners: string[];
+  section: string | undefined;
+  sectionByOwner: Map<string, string | undefined>;
+} {
   return evalFile(compileSections(sections), filePath);
 }
 
@@ -102,14 +109,20 @@ export function ownersForFile(
  * are combined across sections.
  *
  * When `owner` is given, `section` names the last section granting THAT
- * owner; otherwise the last section granting anyone.
+ * owner; otherwise the last section granting anyone. `sectionByOwner`
+ * always records the last granting section per owner (last match wins).
  */
 function evalFile(
   compiled: ReturnType<typeof compileSections>,
   file: string,
   owner?: string,
-): { owners: string[]; section: string | undefined } {
+): {
+  owners: string[];
+  section: string | undefined;
+  sectionByOwner: Map<string, string | undefined>;
+} {
   const owners = new Set<string>();
+  const sectionByOwner = new Map<string, string | undefined>();
   let section: string | undefined;
 
   for (const s of compiled) {
@@ -123,11 +136,16 @@ function evalFile(
       current = entry.owners.length > 0 ? entry.owners : s.defaultOwners;
     }
     if (current && current.length > 0) {
-      for (const o of current) owners.add(o);
-      if (owner === undefined || current.includes(owner)) section = s.name;
+      for (const o of current) {
+        owners.add(o);
+        sectionByOwner.set(o, s.name);
+        if (owner === undefined || o === owner) {
+          section = s.name;
+        }
+      }
     }
   }
-  return { owners: [...owners], section };
+  return { owners: [...owners], section, sectionByOwner };
 }
 
 /**
