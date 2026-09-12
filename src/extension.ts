@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { CodeownersManager, type OwnerInfo } from "./codeowners-manager";
 import { CodeownersFoldingProvider } from "./codeowners-folding";
-
+import { CodeownersDiagnostics } from "./codeowners-diagnostics";
 const COMMAND_ID = "gitlab-codeowners.showOwners";
 const STATUS_BAR_PRIORITY = 100;
 
@@ -15,6 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
       new CodeownersFoldingProvider(),
     ),
   );
+
+  new CodeownersDiagnostics(context);
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,

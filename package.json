@@ -61,7 +61,8 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --sourceMap",
     "package": "npm run check-types && node esbuild.js --production",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "node esbuild-test.js && node --test out/lint.test.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
