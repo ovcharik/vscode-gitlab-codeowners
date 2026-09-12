@@ -1,0 +1,59 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "CODEOWNERS",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#section" },
+    { "include": "#rule" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.codeowners",
+      "begin": "^\\s*#",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.comment.codeowners" }
+      },
+      "end": "$"
+    },
+    "section": {
+      "name": "meta.section.header.codeowners",
+      "match": "^\\s*(\\^?)\\[([^\\]]+)\\](\\[\\d+\\])?\\s*(.*)$",
+      "captures": {
+        "1": { "name": "keyword.operator.optional.codeowners" },
+        "2": { "name": "markup.heading.codeowners" },
+        "3": { "name": "constant.numeric.approval-count.codeowners" },
+        "4": { "patterns": [{ "include": "#owners" }] }
+      }
+    },
+    "rule": {
+      "name": "meta.rule.codeowners",
+      "match": "^\\s*([^\\s#][^\\s]*)\\s*(.*)$",
+      "captures": {
+        "1": { "name": "variable.other.member.codeowners" },
+        "2": {
+          "patterns": [{ "include": "#owners" }]
+        }
+      }
+    },
+    "owners": {
+      "patterns": [
+        { "include": "#owner-count" },
+        { "include": "#owner-optional" },
+        { "include": "#owner-user" }
+      ]
+    },
+    "owner-count": {
+      "match": "\\b\\d+(?=$|\\s)",
+      "name": "constant.numeric.approval-count.codeowners"
+    },
+    "owner-optional": {
+      "match": "(?<=^|\\s)(\\^[^\\s]+)",
+      "name": "entity.other.owner.optional.codeowners"
+    },
+    "owner-user": {
+      "match": "@[^\\s]+",
+      "name": "entity.name.type.owner.codeowners"
+    }
+  },
+  "scopeName": "text.codeowners.gitlab"
+}
