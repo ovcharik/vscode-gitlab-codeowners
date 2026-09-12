@@ -27,6 +27,9 @@ export function registerCommands(
 async function showOwners(manager: CodeownersManager): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
+    vscode.window.showInformationMessage(
+      "GitLab CODEOWNERS: open a file first, then run this command again.",
+    );
     return;
   }
   const owners = await manager.getOwnersForFile(editor.document.fileName);

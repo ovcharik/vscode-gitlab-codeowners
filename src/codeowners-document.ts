@@ -117,7 +117,12 @@ export function parseDocument(text: string): Section[] {
       pattern,
       path,
       isExclusion,
-      kind: path.includes("*") ? "wildcard" : path.endsWith("/") ? "directory" : "file",
+      kind:
+        path.includes("*") || path.includes("?")
+          ? "wildcard"
+          : path.endsWith("/")
+            ? "directory"
+            : "file",
       owners,
     });
   }
