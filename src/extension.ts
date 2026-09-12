@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { CodeownersManager, type OwnerInfo } from "./codeowners-manager";
 import { CodeownersFoldingProvider } from "./codeowners-folding";
 import { CodeownersDiagnostics } from "./codeowners-diagnostics";
+import { CodeownersCompletionProvider } from "./codeowners-completion-provider";
 const COMMAND_ID = "gitlab-codeowners.showOwners";
 const STATUS_BAR_PRIORITY = 100;
 
@@ -17,6 +18,16 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   new CodeownersDiagnostics(context);
+
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      { language: "codeowners" },
+      new CodeownersCompletionProvider(),
+      "/",
+      "@",
+      " ",
+    ),
+  );
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
