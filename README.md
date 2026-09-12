@@ -34,11 +34,13 @@ Zero runtime dependencies — parsing is done in-house, without `@gitlab/codeown
 
 ```bash
 npm install
-npm run compile   # type check + bundle (vite, CJS single file)
-npm test          # vitest unit tests
-npm run lint      # oxlint
-npm run fmt       # oxfmt
-npm run package   # build for publishing
+npm run compile      # type check + bundle (vite, CJS single file)
+npm run watch:vite    # rebuild on change (dev)
+npm run watch:tsc     # type check on change (dev)
+npm test             # vitest unit tests
+npm run lint         # oxlint
+npm run fmt          # oxfmt
+npm run package      # build for publishing
 ```
 
 ## License

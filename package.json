@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "description": "Syntax highlighting and code owners info for GitLab CODEOWNERS files",
   "categories": [
-    "Other",
-    "Programming Languages"
+    "Linters",
+    "Programming Languages",
+    "SCM Providers"
   ],
   "keywords": [
     "code owners",

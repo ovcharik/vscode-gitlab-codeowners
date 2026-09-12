@@ -42,7 +42,7 @@
       "name": "comment.line.number-sign.codeowners",
       "match": "(?<=\\s)#.*$",
       "captures": {
-        "0": { "patterns": [{ "match": "#", "name": "punctuation.definition.comment.codeowners" }] }
+        "0": { "patterns": [{ "match": "^#", "name": "punctuation.definition.comment.codeowners" }] }
       }
     },
     "owners": {
