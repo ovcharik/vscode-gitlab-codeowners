@@ -42,7 +42,9 @@ function compileMatcher(pattern: string): (filePath: string) => boolean {
     }
     return (f) => {
       const normFile = `/${f}`;
-      return normFile === dir || normFile.includes(`${dir}/`);
+      // Relative directories are globstar (any depth); the directory itself
+      // is not a file, so exact equality is not a match (parity with matchesFile).
+      return normFile.includes(`${dir}/`);
     };
   }
   const re = pattern.startsWith("/")
@@ -127,12 +129,18 @@ function evalFile(
 
   for (const s of compiled) {
     let current: string[] | undefined;
+    // Once a file is excluded in a section, later rules of that section
+    // must not re-include it (GitLab semantics; the linter enforces the
+    // same behavior with "This rule has no effect").
+    let excluded = false;
     for (const entry of s.entries) {
       if (!entry.test(file)) continue;
       if (entry.isExclusion) {
         current = undefined;
+        excluded = true;
         continue;
       }
+      if (excluded) continue;
       current = entry.owners.length > 0 ? entry.owners : s.defaultOwners;
     }
     if (current && current.length > 0) {

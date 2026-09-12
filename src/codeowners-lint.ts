@@ -100,8 +100,10 @@ export function matchesFile(pattern: string, filePath: string): boolean {
       return normFile.startsWith(normPattern);
     }
     // `dir` is normalized with a leading slash ("/api"); any occurrence of
-    // "/api/" in the path — at the start or nested — is inside the directory
-    return normFile === dir || normFile.includes(`${dir}/`);
+    // "/api/" in the path — at the start or nested — is inside the directory.
+    // The directory itself ("api") is not a file, so exact equality is not
+    // a match: a regular file named "api" must not match the "api/" pattern.
+    return normFile.includes(`${dir}/`);
   }
   if (pattern.startsWith("/")) {
     // absolute pattern: match only from the repository root

@@ -73,6 +73,13 @@ describe("ownersForFile", () => {
     assert.ok(!owners.includes("@api-team"));
   });
 
+  it("re-include of an excluded path in the same section has no effect", () => {
+    const doc = ["[Docs]", "/docs/ @a", "!/docs/b.md", "/docs/b.md @b"].join("\n");
+    const s2 = parseDocument(doc);
+    const owners = ownersForFile(s2, "docs/b.md").owners;
+    assert.deepEqual(owners, []);
+  });
+
   it("wildcard rules still apply alongside more specific ones", () => {
     const owners = ownersForFile(sections, "docs/api/index.spec.ts").owners;
     assert.ok(owners.includes("@qa-team"));
