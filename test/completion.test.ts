@@ -58,6 +58,11 @@ describe("getCompletionContext", () => {
     assert.equal(getCompletionContext("[Docs] ", 7), "owner");
     assert.equal(getCompletionContext("^[Opt][2] @te", 12), "owner");
   });
+
+  it("inline comment after owners has no context", () => {
+    assert.equal(getCompletionContext("/docs/ @a # note", 15), null);
+    assert.equal(getCompletionContext("* @a # ", 8), null);
+  });
 });
 
 describe("suggestPaths", () => {

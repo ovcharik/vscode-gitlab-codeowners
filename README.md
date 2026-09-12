@@ -21,6 +21,7 @@ Zero runtime dependencies — parsing is done in-house, without `@gitlab/codeown
 | ------------------------------------------------ | ------------------------------------------------------------ |
 | `GitLab CODEOWNERS: Show owners of current file` | Quick pick list of all code owners for the active file       |
 | `GitLab CODEOWNERS: Search files by owner`       | List all files owned by a given owner (user, group or email) |
+
 ### Show owners of current file
 
 ![Quick pick with all code owners of the active file](media/show-owners-of-current-file.png)
@@ -28,6 +29,7 @@ Zero runtime dependencies — parsing is done in-house, without `@gitlab/codeown
 ### Search files by owner
 
 ![File list resulting from a search by owner](media/search-files-by-codeowner.png)
+
 ## Development
 
 ```bash

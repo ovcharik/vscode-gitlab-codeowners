@@ -1,7 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "CODEOWNERS",
-  "patterns": [{ "include": "#comment" }, { "include": "#section" }, { "include": "#rule" }],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#comment-inline" },
+    { "include": "#section" },
+    { "include": "#rule" }
+  ],
   "repository": {
     "comment": {
       "name": "comment.line.number-sign.codeowners",
@@ -18,7 +23,9 @@
         "1": { "name": "keyword.operator.optional.codeowners" },
         "2": { "name": "markup.heading.codeowners" },
         "3": { "name": "constant.numeric.approval-count.codeowners" },
-        "4": { "patterns": [{ "include": "#owners" }] }
+        "4": {
+          "patterns": [{ "include": "#comment-inline" }, { "include": "#owners" }]
+        }
       }
     },
     "rule": {
@@ -27,8 +34,15 @@
       "captures": {
         "1": { "name": "variable.other.member.codeowners" },
         "2": {
-          "patterns": [{ "include": "#owners" }]
+          "patterns": [{ "include": "#comment-inline" }, { "include": "#owners" }]
         }
+      }
+    },
+    "comment-inline": {
+      "name": "comment.line.number-sign.codeowners",
+      "match": "(?<=\\s)#.*$",
+      "captures": {
+        "0": { "patterns": [{ "match": "#", "name": "punctuation.definition.comment.codeowners" }] }
       }
     },
     "owners": {

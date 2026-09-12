@@ -22,7 +22,10 @@ export type CompletionContextType = "path" | "owner" | null;
 /** Detect what the cursor is completing on the given line (0-based col). */
 export function getCompletionContext(lineText: string, col: number): CompletionContextType {
   const sliced = lineText.slice(0, col);
-  if (sliced.trimStart().startsWith("#")) return null;
+  // Comments — from the start of the line or inline after whitespace —
+  // break the line into tokens too, so check them with the same rule.
+  const commentStart = sliced.search(/(^|\s)#/);
+  if (commentStart !== -1) return null;
 
   // Section header line: everything after `[Name]` (and optional [n])
   // consists of default owner tokens.
