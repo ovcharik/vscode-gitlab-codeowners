@@ -44,15 +44,15 @@
       "name": "constant.numeric.approval-count.codeowners"
     },
     "owner-optional": {
-      "match": "(?<=^|\\s)(\\^[^\\s]+)",
+      "match": "(?<=^|\\s)\\^[^\\s#]+",
       "name": "entity.other.owner.optional.codeowners"
     },
     "owner-email": {
-      "match": "(?<=^|\\s)[^\\s@]+@[^\\s@]+(?:\\.[^\\s@]+)+",
+      "match": "(?<=^|\\s)[^\\s@#]+@[^\\s@#]+(?:\\.[^\\s@#]+)+",
       "name": "string.unquoted.email.codeowners"
     },
     "owner-user": {
-      "match": "(?<=^|\\s)@[^\\s]+",
+      "match": "(?<=^|\\s)@[^\\s#]+",
       "name": "entity.name.type.owner.codeowners"
     }
   },
