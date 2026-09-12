@@ -14,8 +14,8 @@ Uses the official parser [`@gitlab/codeowners`](https://gitlab.com/gitlab-org/fr
 
 ## Commands
 
-| Command | Description |
-|---|---|
+| Command                                          | Description                                            |
+| ------------------------------------------------ | ------------------------------------------------------ |
 | `GitLab CODEOWNERS: Show owners of current file` | Quick pick list of all code owners for the active file |
 
 ## License

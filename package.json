@@ -1,31 +1,52 @@
 {
   "name": "vscode-gitlab-codeowners",
   "displayName": "GitLab CODEOWNERS",
-  "description": "Syntax highlighting and code owners info for GitLab CODEOWNERS files",
   "version": "0.1.0",
+  "description": "Syntax highlighting and code owners info for GitLab CODEOWNERS files",
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "code owners",
+    "codeowners",
+    "gitlab"
+  ],
   "license": "MIT",
-  "publisher": "ovcharik",
   "repository": {
     "type": "git",
     "url": "https://github.com/ovcharik/vscode-gitlab-codeowners"
   },
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Other"
-  ],
-  "keywords": [
-    "gitlab",
-    "codeowners",
-    "code owners"
-  ],
-  "activationEvents": [
-    "workspaceContains:**/CODEOWNERS"
-  ],
+  "publisher": "ovcharik",
   "main": "./dist/extension.js",
-  "icon": "media/icon.png",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && vite build",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "vite build --watch",
+    "watch:tsc": "tsc --noEmit --watch --sourceMap",
+    "package": "npm run check-types && vite build",
+    "check-types": "tsc --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gitlab/codeowners": "^0.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  },
   "contributes": {
     "commands": [
       {
@@ -54,27 +75,11 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --sourceMap",
-    "package": "npm run check-types && node esbuild.js --production",
-    "check-types": "tsc --noEmit",
-    "test": "node esbuild-test.js && node --test out/lint.test.js"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^22.20.2",
-    "@types/vscode": "^1.85.0",
-    "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.1.0",
-    "esbuild": "^0.28.2",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^7.0.2"
-  },
-  "dependencies": {
-    "@gitlab/codeowners": "^0.2.8"
+  "activationEvents": [
+    "workspaceContains:**/CODEOWNERS"
+  ],
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
   }
 }

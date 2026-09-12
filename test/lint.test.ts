@@ -3,17 +3,12 @@
  * Run: npm test
  */
 
-import { describe, it, before } from "node:test";
+import { describe, it, beforeAll } from "vitest";
 import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import {
-  lintDocument,
-  collectWorkspacePaths,
-  matchesFile,
-  type WorkspacePaths,
-} from "../src/codeowners-lint";
+import { lintDocument, collectWorkspacePaths, matchesFile } from "../src/codeowners-lint";
 import { parseDocument, splitByNonEscapedSpaces, globToRegExp } from "../src/codeowners-document";
 
 // ---------------------------------------------------------------------------
@@ -40,7 +35,7 @@ function setupFixture() {
   for (const f of files) fs.writeFileSync(path.join(fixtureRoot, f), "");
 }
 
-before(setupFixture);
+beforeAll(setupFixture);
 
 // ---------------------------------------------------------------------------
 // Path matching semantics (docs: Path matching)
@@ -163,7 +158,6 @@ describe("parseDocument", () => {
 
 describe("lintDocument", () => {
   const lint = (text: string) => lintDocument(text, collectWorkspacePaths(fixtureRoot));
-  const at = (msgs: ReturnType<typeof lint>, line: number) => msgs.filter((m) => m.line === line);
 
   it("clean basic file produces no messages", () => {
     const msgs = lint(
