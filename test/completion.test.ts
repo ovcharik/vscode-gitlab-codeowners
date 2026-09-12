@@ -151,10 +151,10 @@ describe("suggestOwners", () => {
   });
 
   it("recognizes non-Latin (Cyrillic) owners", () => {
-    const cyrillicDoc = "/docs/ @иван.петров иван@selectel.ru не-владелец";
+    const cyrillicDoc = "/docs/ @иван.петров иван@example.com не-владелец";
     const labels = suggestOwners("", cyrillicDoc).map((c) => c.label);
     assert.ok(labels.includes("@иван.петров"));
-    assert.ok(labels.includes("иван@selectel.ru"));
+    assert.ok(labels.includes("иван@example.com"));
     assert.equal(labels.length, 2, `unexpected owners: ${labels.join(", ")}`);
   });
 });
