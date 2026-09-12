@@ -43,8 +43,13 @@ export interface Section {
 }
 
 const SECTION_RE = /^\s*(\^?)\[([^\]]*)\](?:\[(\d+)\])?\s*(.*)$/;
-/** Token that looks like a valid owner: @user, @group/sub, @@role, email. */
-export const OWNER_RE = /^(?:@[\w./-]+|@@[\w-]+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)$/;
+/**
+ * Token that looks like a valid owner: @user, @group/sub, @@role, email.
+ * Uses Unicode property escapes so non-Latin usernames (e.g. Cyrillic)
+ * are recognized as owners by the linter and completions.
+ */
+export const OWNER_RE =
+  /^(?:@[\p{L}\p{N}./_-]+|@@[\p{L}\p{N}_-]+|[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+)$/u;
 
 /** Split a line by non-escaped spaces (backslash-escaped spaces stay in token). */
 export function splitByNonEscapedSpaces(line: string): string[] {

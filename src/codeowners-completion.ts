@@ -30,9 +30,9 @@ export function getCompletionContext(lineText: string, col: number): CompletionC
 
   const tokensBefore = splitByNonEscapedSpaces(sliced);
   // On a plain entry line: first token is the path, the rest are owners.
-  // The token currently being typed counts as the last one.
+  // A trailing space means the user starts a NEW token — an owner.
   if (tokensBefore.length === 0) return null;
-  return tokensBefore.length === 1 ? "path" : "owner";
+  return tokensBefore.length === 1 && !/\s$/.test(sliced) ? "path" : "owner";
 }
 
 /**

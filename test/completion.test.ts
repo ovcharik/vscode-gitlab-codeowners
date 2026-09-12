@@ -44,6 +44,11 @@ describe("getCompletionContext", () => {
     assert.equal(getCompletionContext("docs @own", 4), "path");
   });
 
+  it("space after the path switches to owner context", () => {
+    assert.equal(getCompletionContext("/docs/ ", 7), "owner");
+    assert.equal(getCompletionContext("/docs/ @", 7), "owner");
+  });
+
   it("tokens after the first are owners", () => {
     assert.equal(getCompletionContext("/docs/ @own", 10), "owner");
     assert.equal(getCompletionContext("* @default ", 12), "owner");
@@ -138,5 +143,13 @@ describe("suggestOwners", () => {
     assert.equal(byLabel.get("dev@example.com"), "email");
     assert.equal(byLabel.get("@group/sub"), "user, group or subgroup");
     assert.equal(byLabel.get("@default"), "user, group or subgroup");
+  });
+
+  it("recognizes non-Latin (Cyrillic) owners", () => {
+    const cyrillicDoc = "/docs/ @иван.петров иван@selectel.ru не-владелец";
+    const labels = suggestOwners("", cyrillicDoc).map((c) => c.label);
+    assert.ok(labels.includes("@иван.петров"));
+    assert.ok(labels.includes("иван@selectel.ru"));
+    assert.equal(labels.length, 2, `unexpected owners: ${labels.join(", ")}`);
   });
 });
