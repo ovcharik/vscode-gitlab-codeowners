@@ -1,7 +1,7 @@
 {
   "name": "vscode-gitlab-codeowners",
   "displayName": "GitLab CODEOWNERS",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Syntax highlighting and code owners info for GitLab CODEOWNERS files",
   "categories": [
     "Linters",

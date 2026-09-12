@@ -43,6 +43,11 @@ npm run fmt          # oxfmt
 npm run package      # build for publishing
 ```
 
+## Limitations
+
+- Multi-root workspaces: only the first workspace folder is scanned
+- Character classes in patterns (`*.[ch]`) are matched literally
+
 ## License
 
 [MIT](LICENSE)
