@@ -45,12 +45,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "gitlab-codeowners.showOwners",
-        "title": "GitLab CODEOWNERS: Show owners of current file"
+        "command": "codeowners.showOwners",
+        "title": "CODEOWNERS for GitLab: Show owners of current file"
       },
       {
-        "command": "gitlab-codeowners.searchByOwner",
-        "title": "GitLab CODEOWNERS: Search files by owner"
+        "command": "codeowners.searchByOwner",
+        "title": "CODEOWNERS for GitLab: Search files by owner"
       }
     ],
     "languages": [

@@ -1,4 +1,4 @@
-# GitLab CODEOWNERS for VS Code
+# CODEOWNERS for GitLab (VS Code extension)
 
 VS Code extension with support for [GitLab CODEOWNERS](https://docs.gitlab.com/ee/user/project/codeowners/) files.
 
@@ -17,10 +17,10 @@ Zero runtime dependencies — parsing is done in-house, without `@gitlab/codeown
 
 ## Commands
 
-| Command                                          | Description                                                  |
-| ------------------------------------------------ | ------------------------------------------------------------ |
-| `GitLab CODEOWNERS: Show owners of current file` | Quick pick list of all code owners for the active file       |
-| `GitLab CODEOWNERS: Search files by owner`       | List all files owned by a given owner (user, group or email) |
+| Command                                              | Description                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `CODEOWNERS for GitLab: Show owners of current file` | Quick pick list of all code owners for the active file       |
+| `CODEOWNERS for GitLab: Search files by owner`       | List all files owned by a given owner (user, group or email) |
 
 ### Show owners of current file
 

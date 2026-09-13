@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 
-- Command **GitLab CODEOWNERS: Search files by owner**
+- Command **CODEOWNERS for GitLab: Search files by owner**
 - Lint diagnostics with GitLab semantics: nonexistent paths, directory patterns without a trailing slash, rules shadowed by later duplicates, duplicate section names, `!` exclusions of never-included paths, re-include attempts after exclusion
 - Quick fixes for lint diagnostics: "Append trailing slash (/)" for directory patterns, "Remove ineffective rule" for re-includes after exclusion
 - Stable diagnostic codes (`need-trailing-slash`, `exclude-redundant`) as the basis for code actions
@@ -37,7 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 - `codeowners` language for CODEOWNERS files with syntax highlighting (sections, patterns, owners, emails) and section folding
 - Status bar showing the code owners of the active file; click opens a quick pick and copies the selected owner to the clipboard
-- Command **GitLab CODEOWNERS: Show owners of current file**
+- Command **CODEOWNERS for GitLab: Show owners of current file**
 - Nested CODEOWNERS support: the nearest file relative to the open one wins (`CODEOWNERS`, `docs/CODEOWNERS`, `.gitlab/CODEOWNERS`)
 - Parsing via the official `@gitlab/codeowners` package
 

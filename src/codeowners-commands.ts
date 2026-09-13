@@ -4,8 +4,8 @@ import { WorkspacePathsCache } from "./codeowners-workspace-paths";
 import { findCodeownersForRoot } from "./codeowners-locator";
 import { collectOwners, filesOwnedByAsync } from "./codeowners-search";
 
-export const SHOW_OWNERS_COMMAND_ID = "gitlab-codeowners.showOwners";
-export const SEARCH_BY_OWNER_COMMAND_ID = "gitlab-codeowners.searchByOwner";
+export const SHOW_OWNERS_COMMAND_ID = "codeowners.showOwners";
+export const SEARCH_BY_OWNER_COMMAND_ID = "codeowners.searchByOwner";
 
 /**
  * Registers the two extension commands. Each command is a self-contained
@@ -28,14 +28,14 @@ async function showOwners(manager: CodeownersManager): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     vscode.window.showInformationMessage(
-      "GitLab CODEOWNERS: open a file first, then run this command again.",
+      "CODEOWNERS for GitLab: open a file first, then run this command again.",
     );
     return;
   }
   const owners = await manager.getOwnersForFile(editor.document.fileName);
   if (!owners || owners.length === 0) {
     vscode.window.showInformationMessage(
-      "GitLab CODEOWNERS: no owners found for the current file.",
+      "CODEOWNERS for GitLab: no owners found for the current file.",
     );
     return;
   }
@@ -60,12 +60,12 @@ async function showOwners(manager: CodeownersManager): Promise<void> {
 async function searchByOwner(workspacePaths: WorkspacePathsCache): Promise<void> {
   const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!root) {
-    vscode.window.showInformationMessage("GitLab CODEOWNERS: no workspace folder open.");
+    vscode.window.showInformationMessage("CODEOWNERS for GitLab: no workspace folder open.");
     return;
   }
   const codeownersPath = findCodeownersForRoot(root);
   if (!codeownersPath) {
-    vscode.window.showInformationMessage("GitLab CODEOWNERS: no CODEOWNERS file found.");
+    vscode.window.showInformationMessage("CODEOWNERS for GitLab: no CODEOWNERS file found.");
     return;
   }
   const docText = await vscode.workspace.fs
@@ -108,13 +108,13 @@ async function searchByOwner(workspacePaths: WorkspacePathsCache): Promise<void>
 
     const ws = await workspacePaths.get();
     if (!ws) {
-      vscode.window.showInformationMessage("GitLab CODEOWNERS: no workspace folder open.");
+      vscode.window.showInformationMessage("CODEOWNERS for GitLab: no workspace folder open.");
       return;
     }
     const { files, truncated } = await filesOwnedByAsync(docText, owner, ws);
 
     if (files.length === 0) {
-      vscode.window.showInformationMessage(`GitLab CODEOWNERS: no files owned by ${owner}.`);
+      vscode.window.showInformationMessage(`CODEOWNERS for GitLab: no files owned by ${owner}.`);
       return;
     }
 

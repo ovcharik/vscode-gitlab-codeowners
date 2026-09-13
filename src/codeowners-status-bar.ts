@@ -18,7 +18,7 @@ export class CodeownersStatusBar implements vscode.Disposable {
       STATUS_BAR_PRIORITY,
     );
     this.item.command = SHOW_OWNERS_COMMAND_ID;
-    this.item.name = "GitLab CODEOWNERS";
+    this.item.name = "CODEOWNERS for GitLab";
 
     this.disposables.push(
       this.item,
