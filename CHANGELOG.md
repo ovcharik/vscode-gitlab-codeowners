@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows semver.
 
+## [0.3.0] — 2026-09-13
+
+### Changed
+
+- Renamed to **CODEOWNERS for GitLab** (Marketplace ID: `codeowners-for-gitlab`); the old extension ID stayed reserved by the Marketplace after a silent removal
+- Command IDs renamed: `gitlab-codeowners.*` → `codeowners.*` (user keybindings referencing the old IDs must be updated)
+
 ## [0.2.0] — 2026-09-12
 
 ### Added
