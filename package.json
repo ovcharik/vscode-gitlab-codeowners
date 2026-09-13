@@ -1,6 +1,6 @@
 {
-  "name": "vscode-gitlab-codeowners",
-  "displayName": "GitLab CODEOWNERS",
+  "name": "codeowners-for-gitlab",
+  "displayName": "CODEOWNERS for GitLab",
   "version": "0.2.1",
   "description": "Syntax highlighting and code owners info for GitLab CODEOWNERS files",
   "categories": [
@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ovcharik/vscode-gitlab-codeowners"
+    "url": "https://github.com/ovcharik/codeowners-for-gitlab"
   },
   "publisher": "ovcharik",
   "main": "./dist/extension.js",
